@@ -18,6 +18,31 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.23.0"
+          cache: true
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Run tests
+        run: go test -v ./...
+
+      - name: Make script executable
+        run: chmod +x ./scripts/buildprod.sh
 
       - name: Deploy
         run: ./scripts/buildprod.sh
+
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Deployment failed',
+              body: 'Deployment failed in workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+            })
